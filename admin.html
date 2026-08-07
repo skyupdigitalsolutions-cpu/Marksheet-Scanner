@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marksheet Scanner — Admin Panel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #F3F0FF; min-height: 100vh; padding: 24px; }
+  .header { background: #5B21B6; color: white; padding: 20px 24px;
+            border-radius: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header p  { font-size: 13px; opacity: .8; margin-top: 4px; }
+  .card { background: white; border-radius: 12px; padding: 24px;
+          box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 20px; }
+  .card h2 { font-size: 16px; font-weight: 700; color: #1E1B4B;
+             margin-bottom: 16px; padding-bottom: 12px;
+             border-bottom: 1px solid #EDE9FE; }
+  label { display: block; font-size: 13px; font-weight: 600;
+          color: #374151; margin-bottom: 6px; margin-top: 14px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #E5E7EB;
+    border-radius: 8px; font-size: 14px; color: #111827;
+    transition: border-color .2s; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: #7C3AED; }
+  textarea { resize: vertical; min-height: 80px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .btn { display: inline-block; padding: 12px 24px; border-radius: 8px;
+         font-size: 15px; font-weight: 700; cursor: pointer;
+         border: none; transition: opacity .2s; }
+  .btn-primary { background: #5B21B6; color: white; width: 100%; margin-top: 20px; }
+  .btn-secondary { background: #EDE9FE; color: #5B21B6; }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px;
+           font-size: 11px; font-weight: 700; }
+  .badge-update      { background: #DBEAFE; color: #1D4ED8; }
+  .badge-promotion   { background: #FEF3C7; color: #92400E; }
+  .badge-announcement{ background: #D1FAE5; color: #065F46; }
+  .badge-maintenance { background: #FEE2E2; color: #991B1B; }
+  .badge-general     { background: #F3F4F6; color: #374151; }
+  .result { padding: 14px; border-radius: 8px; margin-top: 16px;
+            font-size: 14px; display: none; }
+  .result.success { background: #D1FAE5; color: #065F46; }
+  .result.error   { background: #FEE2E2; color: #991B1B; }
+  .history-item { padding: 14px 0; border-bottom: 1px solid #F3F4F6; }
+  .history-item:last-child { border-bottom: none; }
+  .history-title { font-weight: 600; font-size: 14px; color: #111827; }
+  .history-meta  { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .secret-field  { position: relative; }
+  .secret-field input { padding-right: 80px; }
+  .secret-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+                   font-size: 12px; color: #7C3AED; cursor: pointer; user-select: none; }
+  .stat { text-align: center; }
+  .stat-num  { font-size: 28px; font-weight: 800; color: #5B21B6; }
+  .stat-label{ font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .tab-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab { padding: 8px 20px; border-radius: 8px; cursor: pointer;
+         font-size: 14px; font-weight: 600; border: 2px solid transparent; }
+  .tab.active { background: #5B21B6; color: white; }
+  .tab:not(.active) { background: white; color: #5B21B6; border-color: #EDE9FE; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; background: #F9FAFB;
+       font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; }
+  td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; }
+  .online { color: #059669; } .offline { color: #D1D5DB; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📄 Marksheet Scanner — Admin Panel</h1>
+  <p>SkyUp Digital Solutions LLP — Push Notification Manager</p>
+</div>
+
+<!-- Auth -->
+<div class="card" id="authCard">
+  <h2>🔐 Admin Login</h2>
+  <label>Admin Secret</label>
+  <div class="secret-field">
+    <input type="password" id="adminSecret" placeholder="Enter admin secret from .env">
+    <span class="secret-toggle" onclick="toggleSecret()">Show</span>
+  </div>
+  <button class="btn btn-primary" onclick="loadDashboard()">Access Panel</button>
+</div>
+
+<!-- Dashboard (hidden until auth) -->
+<div id="dashboard" style="display:none">
+
+  <!-- Stats -->
+  <div class="card">
+    <h2>📊 Overview</h2>
+    <div class="row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="stat"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total Users</div></div>
+      <div class="stat"><div class="stat-num" id="statFcm">—</div><div class="stat-label">FCM Registered</div></div>
+      <div class="stat"><div class="stat-num" id="statNotifs">—</div><div class="stat-label">Notifs Sent</div></div>
+      <div class="stat"><div class="stat-num" id="statRoles">—</div><div class="stat-label">Roles</div></div>
+    </div>
+  </div>
+
+  <div class="tab-row">
+    <div class="tab active" onclick="switchTab('send')">📤 Send Notification</div>
+    <div class="tab" onclick="switchTab('history')">📋 History</div>
+    <div class="tab" onclick="switchTab('users')">👥 Users</div>
+  </div>
+
+  <!-- Send tab -->
+  <div class="tab-panel active" id="tab-send">
+    <div class="card">
+      <h2>📤 Send Push Notification</h2>
+
+      <div class="row">
+        <div>
+          <label>Notification Type</label>
+          <select id="notifType">
+            <option value="update">🔄 App Update</option>
+            <option value="promotion">🎁 Promotion / Offer</option>
+            <option value="announcement" selected>📢 Announcement</option>
+            <option value="maintenance">🔧 Maintenance</option>
+            <option value="general">💬 General</option>
+          </select>
+        </div>
+        <div>
+          <label>Target Audience</label>
+          <select id="target" onchange="updateTargetUI()">
+            <option value="all">All Users</option>
+            <option value="role">By Role</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="roleFilter" style="display:none">
+        <label>Target Role</label>
+        <select id="targetRole">
+          <option value="Teacher">Teacher</option>
+          <option value="Admin">Admin</option>
+          <option value="Staff">Staff</option>
+          <option value="Principal">Principal</option>
+        </select>
+      </div>
+
+      <label>Title <span style="color:#9CA3AF;font-weight:400">(max 65 chars)</span></label>
+      <input type="text" id="notifTitle" maxlength="65"
+             placeholder="e.g.  🚀 New Version Available — v2.1">
+      <div style="text-align:right;font-size:11px;color:#9CA3AF;margin-top:4px">
+        <span id="titleCount">0</span>/65
+      </div>
+
+      <label>Message Body <span style="color:#9CA3AF;font-weight:400">(max 200 chars)</span></label>
+      <textarea id="notifBody" maxlength="200"
+        placeholder="e.g.  We've improved scan accuracy by 40%. Update now from the Play Store for best results."></textarea>
+      <div style="text-align:right;font-size:11px;color:#9CA3AF;margin-top:4px">
+        <span id="bodyCount">0</span>/200
+      </div>
+
+      <label>Action URL <span style="color:#9CA3AF;font-weight:400">(optional — Play Store link, website, etc.)</span></label>
+      <input type="url" id="actionUrl" placeholder="https://play.google.com/store/apps/...">
+
+      <label>Image URL <span style="color:#9CA3AF;font-weight:400">(optional — banner image for notification)</span></label>
+      <input type="url" id="imageUrl" placeholder="https://your-server.com/banner.png">
+
+      <!-- Preview -->
+      <div style="margin-top:20px;padding:16px;background:#F9FAFB;border-radius:8px;border:1px solid #EDE9FE">
+        <div style="font-size:11px;font-weight:700;color:#9CA3AF;margin-bottom:10px">NOTIFICATION PREVIEW</div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:28px">📄</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#111827" id="previewTitle">Title appears here</div>
+            <div style="font-size:13px;color:#6B7280;margin-top:2px" id="previewBody">Message body appears here</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="sendBtn" onclick="sendNotification()">📤 Send to All Users</button>
+      <div class="result" id="sendResult"></div>
+    </div>
+  </div>
+
+  <!-- History tab -->
+  <div class="tab-panel" id="tab-history">
+    <div class="card">
+      <h2>📋 Notification History</h2>
+      <div id="historyContent">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Users tab -->
+  <div class="tab-panel" id="tab-users">
+    <div class="card">
+      <h2>👥 Registered Users</h2>
+      <div id="usersContent">Loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let BASE_URL = localStorage.getItem('serverUrl') || '';
+let SECRET   = '';
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function toggleSecret() {
+  const inp = document.getElementById('adminSecret');
+  const tog = document.querySelector('.secret-toggle');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  tog.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+}
+
+async function loadDashboard() {
+  const urlInput = prompt('Enter your server URL (e.g. http://123.456.789.0:3000):',
+                           BASE_URL || 'http://YOUR_SERVER_IP:3000');
+  if (!urlInput) return;
+  BASE_URL = urlInput.trim().replace(/\/$/, '');
+  localStorage.setItem('serverUrl', BASE_URL);
+
+  SECRET = document.getElementById('adminSecret').value;
+  if (!SECRET) { alert('Enter admin secret'); return; }
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/notifications/users`, {
+      headers: { 'x-admin-secret': SECRET }
+    });
+    if (!resp.ok) { alert('Wrong secret or server unreachable'); return; }
+
+    document.getElementById('authCard').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadStats(); loadHistory(); loadUsers();
+  } catch (e) { alert('Cannot connect: ' + e.message); }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const [usersResp, histResp] = await Promise.all([
+    fetch(`${BASE_URL}/api/notifications/users`, { headers: { 'x-admin-secret': SECRET } }),
+    fetch(`${BASE_URL}/api/notifications/history`, { headers: { 'x-admin-secret': SECRET } })
+  ]);
+  const users  = (await usersResp.json()).users  || [];
+  const notifs = (await histResp.json()).notifications || [];
+  const fcmCount = users.filter(u => u.fcmToken).length;
+  const roles = [...new Set(users.map(u => u.role))].length;
+  document.getElementById('statTotal').textContent  = users.length;
+  document.getElementById('statFcm').textContent    = fcmCount;
+  document.getElementById('statNotifs').textContent = notifs.length;
+  document.getElementById('statRoles').textContent  = roles;
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────
+document.getElementById('notifTitle').addEventListener('input', function() {
+  document.getElementById('titleCount').textContent = this.value.length;
+  document.getElementById('previewTitle').textContent = this.value || 'Title appears here';
+});
+document.getElementById('notifBody').addEventListener('input', function() {
+  document.getElementById('bodyCount').textContent = this.value.length;
+  document.getElementById('previewBody').textContent = this.value || 'Message body appears here';
+});
+
+function updateTargetUI() {
+  const target = document.getElementById('target').value;
+  document.getElementById('roleFilter').style.display = target === 'role' ? 'block' : 'none';
+  document.getElementById('sendBtn').textContent =
+    target === 'all' ? '📤 Send to All Users' : '📤 Send to Selected Role';
+}
+
+async function sendNotification() {
+  const title  = document.getElementById('notifTitle').value.trim();
+  const body   = document.getElementById('notifBody').value.trim();
+  if (!title || !body) { alert('Title and body are required'); return; }
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const payload = {
+    title, body,
+    type:      document.getElementById('notifType').value,
+    target:    document.getElementById('target').value,
+    targetRole: document.getElementById('targetRole').value,
+    actionUrl: document.getElementById('actionUrl').value.trim() || null,
+    imageUrl:  document.getElementById('imageUrl').value.trim() || null,
+  };
+
+  try {
+    const resp = await fetch(`${BASE_URL}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json','x-admin-secret': SECRET },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    const el = document.getElementById('sendResult');
+    el.style.display = 'block';
+    if (data.success) {
+      el.className = 'result success';
+      el.textContent = `✓ ${data.message}`;
+      loadStats(); loadHistory();
+    } else {
+      el.className = 'result error';
+      el.textContent = '✗ ' + data.message;
+    }
+  } catch (e) {
+    const el = document.getElementById('sendResult');
+    el.style.display = 'block'; el.className = 'result error';
+    el.textContent = '✗ Network error: ' + e.message;
+  } finally {
+    btn.disabled = false; updateTargetUI();
+  }
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const resp = await fetch(`${BASE_URL}/api/notifications/history`,
+    { headers: { 'x-admin-secret': SECRET } });
+  const { notifications } = await resp.json();
+  const el = document.getElementById('historyContent');
+  if (!notifications?.length) { el.innerHTML = '<p style="color:#9CA3AF">No notifications sent yet.</p>'; return; }
+  el.innerHTML = notifications.map(n => `
+    <div class="history-item">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span class="badge badge-${n.type}">${n.type}</span>
+        <span class="history-title">${n.title}</span>
+      </div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px">${n.body}</div>
+      <div class="history-meta">
+        Sent ${new Date(n.sentAt).toLocaleString()}
+        &nbsp;•&nbsp; ✓ ${n.sentCount} delivered &nbsp;•&nbsp; ✗ ${n.failCount} failed
+        &nbsp;•&nbsp; Target: ${n.target}${n.targetRole ? ' ('+n.targetRole+')' : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const resp = await fetch(`${BASE_URL}/api/notifications/users`,
+    { headers: { 'x-admin-secret': SECRET } });
+  const { users, total } = await resp.json();
+  const el = document.getElementById('usersContent');
+  el.innerHTML = `<p style="font-size:13px;color:#6B7280;margin-bottom:16px">${total} registered users</p>
+    <table>
+      <thead><tr><th>Name</th><th>Username</th><th>Institution</th><th>Role</th><th>FCM</th><th>Joined</th></tr></thead>
+      <tbody>
+        ${users.map(u => `<tr>
+          <td>${u.name}</td>
+          <td>@${u.username}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${u.institution}</td>
+          <td><span class="badge badge-general">${u.role}</span></td>
+          <td>${u.fcmToken ? '<span class="online">●</span> Active' : '<span class="offline">●</span> None'}</td>
+          <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['send','history','users'][i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>
