@@ -8,6 +8,7 @@ const connectDB = require('./config/db');
 const app = express();
 connectDB();
 
+// ── Security ──────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
     origin: '*',
@@ -31,15 +32,27 @@ app.use(rateLimit({
 app.use(express.json({ limit: '25mb' }));
 app.use(express.static(__dirname));
 
+// ── Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/scans',         require('./routes/scans'));
 app.use('/api/gemini',        require('./routes/gemini'));
 
-app.get('/health', (req, res) => res.json({
-    success: true, message: 'Marksheet Scanner API running',
-    version: '2.0.0', timestamp: new Date().toISOString()
-}));
+// ── Health check — Railway pings this to confirm app is alive ─────────────
+// Must respond FAST (before Railway's 60s timeout)
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Marksheet Scanner API running',
+        version: '2.0.0',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ── Root — so Railway's browser preview shows something ───────────────────
+app.get('/', (req, res) => {
+    res.status(200).send('Marksheet Scanner API v2.0 — OK');
+});
 
 app.use((req, res) => res.status(404).json({ success: false, message: 'Not found' }));
 app.use((err, req, res, next) => {
@@ -47,5 +60,11 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: err.message });
 });
 
+// ── FIX: bind to 0.0.0.0 so Railway's proxy can reach the app ────────────
+// Without '0.0.0.0', Node binds to 127.0.0.1 only → Railway health check
+// cannot connect → SIGTERM after 60s timeout
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✓ Server on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✓ Server running on 0.0.0.0:${PORT}`);
+    console.log(`  Health: http://localhost:${PORT}/health`);
+});
