@@ -1,3 +1,11 @@
+/**
+ * models/User.js
+ *
+ * FIXES:
+ * 1. Added isActive field — auth middleware referenced it but it didn't exist
+ *    causing all authenticated requests to fail with 401
+ * 2. Added lastLogin field — updated on each login (used by admin panel)
+ */
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 
@@ -9,6 +17,11 @@ const userSchema = new mongoose.Schema({
     role:        { type: String, enum: ['Teacher','Admin','Staff','Principal'], default: 'Teacher' },
     password:    { type: String, required: true },
     fcmToken:    { type: String, default: null },
+
+    // FIX: these two fields were referenced in code but missing from schema
+    isActive:    { type: Boolean, default: true },
+    lastLogin:   { type: Date, default: null },
+
     createdAt:   { type: Date, default: Date.now }
 });
 

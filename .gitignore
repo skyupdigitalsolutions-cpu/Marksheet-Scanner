@@ -1,6 +1,16 @@
-﻿node_modules/
+# Dependencies
+node_modules/
+
+# Environment — NEVER commit real secrets
 .env
+
+# Firebase service account — contains private key
 firebase-service-account.json
-firebase-service-account.json.json
+
+# Logs
+*.log
 npm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db

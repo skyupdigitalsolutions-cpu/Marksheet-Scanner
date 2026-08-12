@@ -97,7 +97,7 @@
       <div class="stat"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total Users</div></div>
       <div class="stat"><div class="stat-num" id="statFcm">—</div><div class="stat-label">FCM Registered</div></div>
       <div class="stat"><div class="stat-num" id="statNotifs">—</div><div class="stat-label">Notifs Sent</div></div>
-      <div class="stat"><div class="stat-num" id="statRoles">—</div><div class="stat-label">Roles</div></div>
+      <div class="stat"><div class="stat-num" id="statRoles">—</div><div class="stat-label">Institutions</div></div>
     </div>
   </div>
 
@@ -227,6 +227,7 @@ async function loadDashboard() {
 
     document.getElementById('authCard').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
+    document.querySelector('.header p').textContent = 'SkyUp Digital Solutions LLP — ' + BASE_URL;
     loadStats(); loadHistory(); loadUsers();
   } catch (e) { alert('Cannot connect: ' + e.message); }
 }
@@ -240,7 +241,7 @@ async function loadStats() {
   const users  = (await usersResp.json()).users  || [];
   const notifs = (await histResp.json()).notifications || [];
   const fcmCount = users.filter(u => u.fcmToken).length;
-  const roles = [...new Set(users.map(u => u.role))].length;
+  const roles = [...new Set(users.map(u => u.institution))].length;
   document.getElementById('statTotal').textContent  = users.length;
   document.getElementById('statFcm').textContent    = fcmCount;
   document.getElementById('statNotifs').textContent = notifs.length;
