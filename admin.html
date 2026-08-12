@@ -30,18 +30,15 @@
          font-size: 15px; font-weight: 700; cursor: pointer;
          border: none; transition: opacity .2s; }
   .btn-primary { background: #5B21B6; color: white; width: 100%; margin-top: 20px; }
-  .btn-secondary { background: #EDE9FE; color: #5B21B6; }
   .btn:hover { opacity: .85; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px;
-           font-size: 11px; font-weight: 700; }
-  .badge-update      { background: #DBEAFE; color: #1D4ED8; }
-  .badge-promotion   { background: #FEF3C7; color: #92400E; }
-  .badge-announcement{ background: #D1FAE5; color: #065F46; }
-  .badge-maintenance { background: #FEE2E2; color: #991B1B; }
-  .badge-general     { background: #F3F4F6; color: #374151; }
-  .result { padding: 14px; border-radius: 8px; margin-top: 16px;
-            font-size: 14px; display: none; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-update       { background: #DBEAFE; color: #1D4ED8; }
+  .badge-promotion    { background: #FEF3C7; color: #92400E; }
+  .badge-announcement { background: #D1FAE5; color: #065F46; }
+  .badge-maintenance  { background: #FEE2E2; color: #991B1B; }
+  .badge-general      { background: #F3F4F6; color: #374151; }
+  .result { padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 14px; display: none; }
   .result.success { background: #D1FAE5; color: #065F46; }
   .result.error   { background: #FEE2E2; color: #991B1B; }
   .history-item { padding: 14px 0; border-bottom: 1px solid #F3F4F6; }
@@ -53,12 +50,12 @@
   .secret-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
                    font-size: 12px; color: #7C3AED; cursor: pointer; user-select: none; }
   .stat { text-align: center; }
-  .stat-num  { font-size: 28px; font-weight: 800; color: #5B21B6; }
-  .stat-label{ font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .stat-num   { font-size: 28px; font-weight: 800; color: #5B21B6; }
+  .stat-label { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
   .tab-row { display: flex; gap: 8px; margin-bottom: 20px; }
   .tab { padding: 8px 20px; border-radius: 8px; cursor: pointer;
          font-size: 14px; font-weight: 600; border: 2px solid transparent; }
-  .tab.active { background: #5B21B6; color: white; }
+  .tab.active     { background: #5B21B6; color: white; }
   .tab:not(.active) { background: white; color: #5B21B6; border-color: #EDE9FE; }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
@@ -67,24 +64,27 @@
        font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; }
   td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; }
   .online { color: #059669; } .offline { color: #D1D5DB; }
+  .char-count { text-align: right; font-size: 11px; color: #9CA3AF; margin-top: 4px; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>📄 Marksheet Scanner — Admin Panel</h1>
-  <p>SkyUp Digital Solutions LLP — Push Notification Manager</p>
+  <p id="headerSub">SkyUp Digital Solutions LLP — Push Notification Manager</p>
 </div>
 
 <!-- Auth -->
 <div class="card" id="authCard">
   <h2>🔐 Admin Login</h2>
+  <label>Server URL</label>
+  <input type="url" id="serverUrl" placeholder="https://marksheet-scanner-production.up.railway.app">
   <label>Admin Secret</label>
   <div class="secret-field">
-    <input type="password" id="adminSecret" placeholder="Enter admin secret from .env">
-    <span class="secret-toggle" onclick="toggleSecret()">Show</span>
+    <input type="password" id="adminSecret" placeholder="Enter ADMIN_SECRET from .env">
+    <span class="secret-toggle" id="secretToggle">Show</span>
   </div>
-  <button class="btn btn-primary" onclick="loadDashboard()">Access Panel</button>
+  <button class="btn btn-primary" id="loginBtn">Access Panel</button>
 </div>
 
 <!-- Dashboard (hidden until auth) -->
@@ -97,21 +97,20 @@
       <div class="stat"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total Users</div></div>
       <div class="stat"><div class="stat-num" id="statFcm">—</div><div class="stat-label">FCM Registered</div></div>
       <div class="stat"><div class="stat-num" id="statNotifs">—</div><div class="stat-label">Notifs Sent</div></div>
-      <div class="stat"><div class="stat-num" id="statRoles">—</div><div class="stat-label">Institutions</div></div>
+      <div class="stat"><div class="stat-num" id="statInstitutions">—</div><div class="stat-label">Institutions</div></div>
     </div>
   </div>
 
   <div class="tab-row">
-    <div class="tab active" onclick="switchTab('send')">📤 Send Notification</div>
-    <div class="tab" onclick="switchTab('history')">📋 History</div>
-    <div class="tab" onclick="switchTab('users')">👥 Users</div>
+    <div class="tab active" id="tab-btn-send">📤 Send Notification</div>
+    <div class="tab" id="tab-btn-history">📋 History</div>
+    <div class="tab" id="tab-btn-users">👥 Users</div>
   </div>
 
   <!-- Send tab -->
   <div class="tab-panel active" id="tab-send">
     <div class="card">
       <h2>📤 Send Push Notification</h2>
-
       <div class="row">
         <div>
           <label>Notification Type</label>
@@ -125,7 +124,7 @@
         </div>
         <div>
           <label>Target Audience</label>
-          <select id="target" onchange="updateTargetUI()">
+          <select id="target">
             <option value="all">All Users</option>
             <option value="role">By Role</option>
           </select>
@@ -143,23 +142,17 @@
       </div>
 
       <label>Title <span style="color:#9CA3AF;font-weight:400">(max 65 chars)</span></label>
-      <input type="text" id="notifTitle" maxlength="65"
-             placeholder="e.g.  🚀 New Version Available — v2.1">
-      <div style="text-align:right;font-size:11px;color:#9CA3AF;margin-top:4px">
-        <span id="titleCount">0</span>/65
-      </div>
+      <input type="text" id="notifTitle" maxlength="65" placeholder="e.g. 🚀 New Version Available — v2.1">
+      <div class="char-count"><span id="titleCount">0</span>/65</div>
 
       <label>Message Body <span style="color:#9CA3AF;font-weight:400">(max 200 chars)</span></label>
-      <textarea id="notifBody" maxlength="200"
-        placeholder="e.g.  We've improved scan accuracy by 40%. Update now from the Play Store for best results."></textarea>
-      <div style="text-align:right;font-size:11px;color:#9CA3AF;margin-top:4px">
-        <span id="bodyCount">0</span>/200
-      </div>
+      <textarea id="notifBody" maxlength="200" placeholder="e.g. Scan accuracy improved by 40%. Update now from the Play Store."></textarea>
+      <div class="char-count"><span id="bodyCount">0</span>/200</div>
 
       <label>Action URL <span style="color:#9CA3AF;font-weight:400">(optional — Play Store link, website, etc.)</span></label>
       <input type="url" id="actionUrl" placeholder="https://play.google.com/store/apps/...">
 
-      <label>Image URL <span style="color:#9CA3AF;font-weight:400">(optional — banner image for notification)</span></label>
+      <label>Image URL <span style="color:#9CA3AF;font-weight:400">(optional — banner image)</span></label>
       <input type="url" id="imageUrl" placeholder="https://your-server.com/banner.png">
 
       <!-- Preview -->
@@ -174,7 +167,7 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" id="sendBtn" onclick="sendNotification()">📤 Send to All Users</button>
+      <button class="btn btn-primary" id="sendBtn">📤 Send to All Users</button>
       <div class="result" id="sendResult"></div>
     </div>
   </div>
@@ -198,167 +191,201 @@
 </div>
 
 <script>
+// All event listeners attached here — no inline onclick handlers
 let BASE_URL = localStorage.getItem('serverUrl') || '';
 let SECRET   = '';
 
-// ── Auth ──────────────────────────────────────────────────────────────────
-function toggleSecret() {
-  const inp = document.getElementById('adminSecret');
-  const tog = document.querySelector('.secret-toggle');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  tog.textContent = inp.type === 'password' ? 'Show' : 'Hide';
-}
+// Pre-fill saved server URL
+if (BASE_URL) document.getElementById('serverUrl').value = BASE_URL;
 
-async function loadDashboard() {
-  const urlInput = prompt('Enter your server URL (e.g. http://123.456.789.0:3000):',
-                           BASE_URL || 'http://YOUR_SERVER_IP:3000');
-  if (!urlInput) return;
-  BASE_URL = urlInput.trim().replace(/\/$/, '');
+// ── Auth ──────────────────────────────────────────────────────────────────
+document.getElementById('secretToggle').addEventListener('click', function() {
+  const inp = document.getElementById('adminSecret');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+});
+
+document.getElementById('loginBtn').addEventListener('click', async function() {
+  const urlVal = document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
+  if (!urlVal) { alert('Enter server URL'); return; }
+  BASE_URL = urlVal;
   localStorage.setItem('serverUrl', BASE_URL);
 
-  SECRET = document.getElementById('adminSecret').value;
+  SECRET = document.getElementById('adminSecret').value.trim();
   if (!SECRET) { alert('Enter admin secret'); return; }
 
+  this.disabled = true;
+  this.textContent = 'Connecting…';
   try {
-    const resp = await fetch(`${BASE_URL}/api/notifications/users`, {
+    const resp = await fetch(BASE_URL + '/api/notifications/users', {
       headers: { 'x-admin-secret': SECRET }
     });
-    if (!resp.ok) { alert('Wrong secret or server unreachable'); return; }
+    if (!resp.ok) { alert('Wrong secret or server unreachable (status ' + resp.status + ')'); return; }
 
-    document.getElementById('authCard').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    document.querySelector('.header p').textContent = 'SkyUp Digital Solutions LLP — ' + BASE_URL;
+    document.getElementById('authCard').style.display    = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+    document.getElementById('headerSub').textContent     = 'SkyUp Digital — ' + BASE_URL;
     loadStats(); loadHistory(); loadUsers();
-  } catch (e) { alert('Cannot connect: ' + e.message); }
-}
+  } catch (e) {
+    alert('Cannot connect: ' + e.message);
+  } finally {
+    this.disabled = false;
+    this.textContent = 'Access Panel';
+  }
+});
+
+// Allow Enter key on secret field to login
+document.getElementById('adminSecret').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
 
 // ── Stats ─────────────────────────────────────────────────────────────────
 async function loadStats() {
-  const [usersResp, histResp] = await Promise.all([
-    fetch(`${BASE_URL}/api/notifications/users`, { headers: { 'x-admin-secret': SECRET } }),
-    fetch(`${BASE_URL}/api/notifications/history`, { headers: { 'x-admin-secret': SECRET } })
-  ]);
-  const users  = (await usersResp.json()).users  || [];
-  const notifs = (await histResp.json()).notifications || [];
-  const fcmCount = users.filter(u => u.fcmToken).length;
-  const roles = [...new Set(users.map(u => u.institution))].length;
-  document.getElementById('statTotal').textContent  = users.length;
-  document.getElementById('statFcm').textContent    = fcmCount;
-  document.getElementById('statNotifs').textContent = notifs.length;
-  document.getElementById('statRoles').textContent  = roles;
+  try {
+    const [usersResp, histResp] = await Promise.all([
+      fetch(BASE_URL + '/api/notifications/users',  { headers: { 'x-admin-secret': SECRET } }),
+      fetch(BASE_URL + '/api/notifications/history', { headers: { 'x-admin-secret': SECRET } })
+    ]);
+    const users  = (await usersResp.json()).users         || [];
+    const notifs = (await histResp.json()).notifications  || [];
+    document.getElementById('statTotal').textContent        = users.length;
+    document.getElementById('statFcm').textContent          = users.filter(u => u.fcmToken).length;
+    document.getElementById('statNotifs').textContent       = notifs.length;
+    document.getElementById('statInstitutions').textContent = new Set(users.map(u => u.institution)).size;
+  } catch(e) { console.error('loadStats:', e); }
 }
 
-// ── Send ──────────────────────────────────────────────────────────────────
+// ── Character counters + preview ──────────────────────────────────────────
 document.getElementById('notifTitle').addEventListener('input', function() {
-  document.getElementById('titleCount').textContent = this.value.length;
+  document.getElementById('titleCount').textContent  = this.value.length;
   document.getElementById('previewTitle').textContent = this.value || 'Title appears here';
 });
+
 document.getElementById('notifBody').addEventListener('input', function() {
-  document.getElementById('bodyCount').textContent = this.value.length;
+  document.getElementById('bodyCount').textContent  = this.value.length;
   document.getElementById('previewBody').textContent = this.value || 'Message body appears here';
 });
 
-function updateTargetUI() {
-  const target = document.getElementById('target').value;
-  document.getElementById('roleFilter').style.display = target === 'role' ? 'block' : 'none';
+// ── Target audience toggle ────────────────────────────────────────────────
+document.getElementById('target').addEventListener('change', function() {
+  document.getElementById('roleFilter').style.display = this.value === 'role' ? 'block' : 'none';
   document.getElementById('sendBtn').textContent =
-    target === 'all' ? '📤 Send to All Users' : '📤 Send to Selected Role';
-}
+    this.value === 'all' ? '📤 Send to All Users' : '📤 Send to Selected Role';
+});
 
-async function sendNotification() {
-  const title  = document.getElementById('notifTitle').value.trim();
-  const body   = document.getElementById('notifBody').value.trim();
+// ── Send notification ─────────────────────────────────────────────────────
+document.getElementById('sendBtn').addEventListener('click', async function() {
+  const title = document.getElementById('notifTitle').value.trim();
+  const body  = document.getElementById('notifBody').value.trim();
   if (!title || !body) { alert('Title and body are required'); return; }
 
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true; btn.textContent = 'Sending…';
+  this.disabled = true;
+  this.textContent = 'Sending…';
 
   const payload = {
     title, body,
-    type:      document.getElementById('notifType').value,
-    target:    document.getElementById('target').value,
+    type:       document.getElementById('notifType').value,
+    target:     document.getElementById('target').value,
     targetRole: document.getElementById('targetRole').value,
-    actionUrl: document.getElementById('actionUrl').value.trim() || null,
-    imageUrl:  document.getElementById('imageUrl').value.trim() || null,
+    actionUrl:  document.getElementById('actionUrl').value.trim() || null,
+    imageUrl:   document.getElementById('imageUrl').value.trim()  || null,
   };
 
   try {
-    const resp = await fetch(`${BASE_URL}/api/notifications/send`, {
+    const resp = await fetch(BASE_URL + '/api/notifications/send', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json','x-admin-secret': SECRET },
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': SECRET },
       body: JSON.stringify(payload)
     });
     const data = await resp.json();
-    const el = document.getElementById('sendResult');
+    const el   = document.getElementById('sendResult');
     el.style.display = 'block';
     if (data.success) {
-      el.className = 'result success';
-      el.textContent = `✓ ${data.message}`;
+      el.className   = 'result success';
+      el.textContent = '✓ ' + data.message;
       loadStats(); loadHistory();
     } else {
-      el.className = 'result error';
-      el.textContent = '✗ ' + data.message;
+      el.className   = 'result error';
+      el.textContent = '✗ ' + (data.message || 'Send failed');
     }
   } catch (e) {
     const el = document.getElementById('sendResult');
-    el.style.display = 'block'; el.className = 'result error';
-    el.textContent = '✗ Network error: ' + e.message;
+    el.style.display = 'block';
+    el.className     = 'result error';
+    el.textContent   = '✗ Network error: ' + e.message;
   } finally {
-    btn.disabled = false; updateTargetUI();
+    this.disabled    = false;
+    this.textContent = document.getElementById('target').value === 'all'
+      ? '📤 Send to All Users' : '📤 Send to Selected Role';
   }
-}
+});
 
 // ── History ───────────────────────────────────────────────────────────────
 async function loadHistory() {
-  const resp = await fetch(`${BASE_URL}/api/notifications/history`,
-    { headers: { 'x-admin-secret': SECRET } });
-  const { notifications } = await resp.json();
-  const el = document.getElementById('historyContent');
-  if (!notifications?.length) { el.innerHTML = '<p style="color:#9CA3AF">No notifications sent yet.</p>'; return; }
-  el.innerHTML = notifications.map(n => `
-    <div class="history-item">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span class="badge badge-${n.type}">${n.type}</span>
-        <span class="history-title">${n.title}</span>
-      </div>
-      <div style="font-size:13px;color:#374151;margin-bottom:6px">${n.body}</div>
-      <div class="history-meta">
-        Sent ${new Date(n.sentAt).toLocaleString()}
-        &nbsp;•&nbsp; ✓ ${n.sentCount} delivered &nbsp;•&nbsp; ✗ ${n.failCount} failed
-        &nbsp;•&nbsp; Target: ${n.target}${n.targetRole ? ' ('+n.targetRole+')' : ''}
-      </div>
-    </div>`).join('');
+  try {
+    const resp  = await fetch(BASE_URL + '/api/notifications/history', { headers: { 'x-admin-secret': SECRET } });
+    const { notifications } = await resp.json();
+    const el = document.getElementById('historyContent');
+    if (!notifications || !notifications.length) {
+      el.innerHTML = '<p style="color:#9CA3AF">No notifications sent yet.</p>';
+      return;
+    }
+    el.innerHTML = notifications.map(n => `
+      <div class="history-item">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span class="badge badge-${n.type}">${n.type}</span>
+          <span class="history-title">${escHtml(n.title)}</span>
+        </div>
+        <div style="font-size:13px;color:#374151;margin-bottom:6px">${escHtml(n.body)}</div>
+        <div class="history-meta">
+          Sent ${new Date(n.sentAt).toLocaleString()}
+          &nbsp;•&nbsp; ✓ ${n.sentCount} delivered
+          &nbsp;•&nbsp; ✗ ${n.failCount} failed
+          &nbsp;•&nbsp; Target: ${n.target}${n.targetRole ? ' (' + n.targetRole + ')' : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('loadHistory:', e); }
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────
 async function loadUsers() {
-  const resp = await fetch(`${BASE_URL}/api/notifications/users`,
-    { headers: { 'x-admin-secret': SECRET } });
-  const { users, total } = await resp.json();
-  const el = document.getElementById('usersContent');
-  el.innerHTML = `<p style="font-size:13px;color:#6B7280;margin-bottom:16px">${total} registered users</p>
-    <table>
-      <thead><tr><th>Name</th><th>Username</th><th>Institution</th><th>Role</th><th>FCM</th><th>Joined</th></tr></thead>
-      <tbody>
-        ${users.map(u => `<tr>
-          <td>${u.name}</td>
-          <td>@${u.username}</td>
-          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${u.institution}</td>
-          <td><span class="badge badge-general">${u.role}</span></td>
+  try {
+    const resp = await fetch(BASE_URL + '/api/notifications/users', { headers: { 'x-admin-secret': SECRET } });
+    const { users, total } = await resp.json();
+    const el = document.getElementById('usersContent');
+    el.innerHTML = `
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px">${total} registered users</p>
+      <table>
+        <thead><tr><th>Name</th><th>Username</th><th>Institution</th><th>Role</th><th>FCM</th><th>Joined</th></tr></thead>
+        <tbody>${users.map(u => `<tr>
+          <td>${escHtml(u.name)}</td>
+          <td>@${escHtml(u.username)}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${escHtml(u.institution)}</td>
+          <td><span class="badge badge-general">${escHtml(u.role)}</span></td>
           <td>${u.fcmToken ? '<span class="online">●</span> Active' : '<span class="offline">●</span> None'}</td>
           <td>${new Date(u.createdAt).toLocaleDateString()}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+        </tr>`).join('')}</tbody>
+      </table>`;
+  } catch(e) { console.error('loadUsers:', e); }
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['send','history','users'][i] === name);
+const TAB_NAMES = ['send', 'history', 'users'];
+
+TAB_NAMES.forEach(name => {
+  document.getElementById('tab-btn-' + name).addEventListener('click', function() {
+    TAB_NAMES.forEach(t => {
+      document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+      document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    });
   });
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+});
+
+// ── Safety: escape HTML in user-supplied content ──────────────────────────
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 </script>
 </body>

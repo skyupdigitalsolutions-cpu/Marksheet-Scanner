@@ -9,13 +9,31 @@ const app = express();
 connectDB();
 
 // ── Security ──────────────────────────────────────────────────────────────
-app.use(helmet());
+// Custom CSP: strict for API routes, relaxed for admin.html
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc:  ["'self'"],
+            scriptSrc:   ["'self'", "'unsafe-inline'"],   // needed for admin.html inline JS
+            scriptSrcAttr: ["'unsafe-inline'"],            // needed for onclick= handlers
+            styleSrc:    ["'self'", "'unsafe-inline'"],    // needed for inline styles
+            imgSrc:      ["'self'", "data:", "https:"],
+            connectSrc:  ["'self'", "https:"],             // allow fetch() to any HTTPS
+            fontSrc:     ["'self'", "https:", "data:"],
+            objectSrc:   ["'none'"],
+            frameSrc:    ["'none'"],
+        }
+    },
+    crossOriginEmbedderPolicy: false   // allow admin panel to load without COEP issues
+}));
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }));
 
+// ── Rate limiting ─────────────────────────────────────────────────────────
 app.use('/api/auth', rateLimit({
     windowMs: 15 * 60 * 1000, max: 30,
     message: { success: false, message: 'Too many requests.' }
@@ -38,8 +56,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/scans',         require('./routes/scans'));
 app.use('/api/gemini',        require('./routes/gemini'));
 
-// ── Health check — Railway pings this to confirm app is alive ─────────────
-// Must respond FAST (before Railway's 60s timeout)
+// ── Health check ──────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -49,7 +66,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-// ── Root — so Railway's browser preview shows something ───────────────────
 app.get('/', (req, res) => {
     res.status(200).send('Marksheet Scanner API v2.0 — OK');
 });
@@ -60,11 +76,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: err.message });
 });
 
-// ── FIX: bind to 0.0.0.0 so Railway's proxy can reach the app ────────────
-// Without '0.0.0.0', Node binds to 127.0.0.1 only → Railway health check
-// cannot connect → SIGTERM after 60s timeout
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Server running on 0.0.0.0:${PORT}`);
     console.log(`  Health: http://localhost:${PORT}/health`);
+    console.log(`  Admin:  http://localhost:${PORT}/admin.html`);
 });
