@@ -68,6 +68,7 @@ router.post('/users/:id/credits', async (req, res) => {
         if (req.body.credits !== undefined) {
             const delta = parseInt(req.body.credits, 10) || 0;
             user.scanCredits = Math.max(0, (user.scanCredits || 0) + delta);
+            if (delta > 0) user.lowCreditsNotified = false; // reset so a fresh low-balance push can fire again later
         }
         if (req.body.unlimitedAccess !== undefined) {
             user.unlimitedAccess = !!req.body.unlimitedAccess;

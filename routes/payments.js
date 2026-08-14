@@ -116,6 +116,7 @@ router.post('/verify', async (req, res) => {
         const user = await User.findById(req.user._id);
         user.scanCredits = (user.scanCredits || 0) + payment.creditsGranted;
         user.totalPaid   = (user.totalPaid || 0) + payment.amount;
+        user.lowCreditsNotified = false; // reset so they get pinged again next time they run low
         await user.save();
 
         res.json({

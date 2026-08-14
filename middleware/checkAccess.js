@@ -17,6 +17,7 @@
  *     before, and decrementing the credit after).
  */
 const User = require('../models/User');
+const { maybeSendLowCreditsPush } = require('../utils/lowCreditsPush');
 
 function evaluateAccess(user) {
     if (user.isBlocked) {
@@ -53,6 +54,10 @@ async function consumeOneCredit(userId) {
     }
     user.totalScansUsed = (user.totalScansUsed || 0) + 1;
     await user.save();
+
+    // Fire-and-forget — never let a push failure block the scan response
+    maybeSendLowCreditsPush(user).catch(e => console.error('low-credits push error:', e.message));
+
     return user;
 }
 

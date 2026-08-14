@@ -27,6 +27,8 @@ router.get('/status', (req, res) => {
         unlimitedAccess: req.user.unlimitedAccess,
         isBlocked: req.user.isBlocked,
         isActive: req.user.isActive,
+        totalScansUsed: req.user.totalScansUsed || 0,
+        totalPaid: req.user.totalPaid || 0,
         minRechargeAmount: parseInt(process.env.MIN_RECHARGE_RUPEES || '100', 10)
     });
 });

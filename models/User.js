@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
     totalPaid:      { type: Number, default: 0 },   // lifetime amount paid in paise
     unlimitedAccess:{ type: Boolean, default: false }, // admin can grant unlimited access, bypassing credits
 
+    // "Low credits — top up" push already sent for the CURRENT low balance.
+    // Reset to false whenever the user recharges, so they get notified again
+    // next time they run low. Prevents a push on every single scan below threshold.
+    lowCreditsNotified: { type: Boolean, default: false },
+
     createdAt:   { type: Date, default: Date.now }
 });
 
