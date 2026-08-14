@@ -18,6 +18,7 @@ const express = require('express');
 const multer  = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const authMW  = require('../middleware/auth');
+const { requireAccess, consumeOneCredit } = require('../middleware/checkAccess');
 
 const router = express.Router();
 const upload = multer({
@@ -30,6 +31,9 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const MODEL = 'gemini-2.0-flash';
 
 router.use(authMW);
+// Admin restrictions + scan-credit paywall — blocked/out-of-credit users get
+// a 402 before we spend anything calling Gemini.
+router.use(requireAccess);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,6 +139,7 @@ Respond with ONLY this JSON (no explanation, no markdown):
         if (!parsed.columns || !Array.isArray(parsed.columns)) parsed.columns = [];
         if (!parsed.orientation) parsed.orientation = 'row';
 
+        await consumeOneCredit(req.user._id);
         res.json({ success: true, data: parsed });
 
     } catch (err) {
@@ -202,6 +207,7 @@ Respond with ONLY this JSON (no explanation, no markdown):
         if (!parsed.rows || !Array.isArray(parsed.rows)) parsed.rows = [];
         if (!parsed.orientation) parsed.orientation = orientation;
 
+        await consumeOneCredit(req.user._id);
         res.json({ success: true, data: parsed });
 
     } catch (err) {
@@ -270,6 +276,7 @@ Respond with ONLY this JSON (no explanation, no markdown fences):
             parsed.columns = Object.keys(parsed.rows[0]);
         }
 
+        await consumeOneCredit(req.user._id);
         res.json({ success: true, data: parsed });
 
     } catch (err) {

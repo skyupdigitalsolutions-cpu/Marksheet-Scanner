@@ -56,6 +56,9 @@ app.use('/api/auth',          require('./routes/auth'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/scans',         require('./routes/scans'));
 app.use('/api/gemini',        require('./routes/gemini'));
+app.use('/api/access',        require('./routes/access'));
+app.use('/api/payments',      require('./routes/payments'));
+app.use('/api/admin',         require('./routes/admin'));
 
 // ── Health check ──────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

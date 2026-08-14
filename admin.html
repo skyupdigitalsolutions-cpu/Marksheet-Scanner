@@ -105,6 +105,8 @@
     <div class="tab active" id="tab-btn-send">📤 Send Notification</div>
     <div class="tab" id="tab-btn-history">📋 History</div>
     <div class="tab" id="tab-btn-users">👥 Users</div>
+    <div class="tab" id="tab-btn-access">🚫 Access Control</div>
+    <div class="tab" id="tab-btn-payments">💳 Payments</div>
   </div>
 
   <!-- Send tab -->
@@ -188,6 +190,31 @@
     </div>
   </div>
 
+  <!-- Access Control tab -->
+  <div class="tab-panel" id="tab-access">
+    <div class="card">
+      <h2>🚫 Restrict / Unblock Users &amp; Manage Scan Credits</h2>
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
+        Block stops a user's scanning immediately (they keep their credits — unblocking restores access).
+        Credits are consumed 1 per scan; grant free credits or mark a user "unlimited" any time.
+      </p>
+      <div id="accessContent">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Payments tab -->
+  <div class="tab-panel" id="tab-payments">
+    <div class="card">
+      <h2>💳 Razorpay Payments</h2>
+      <div class="row" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px">
+        <div class="stat"><div class="stat-num" id="statRevenue">—</div><div class="stat-label">Revenue (₹)</div></div>
+        <div class="stat"><div class="stat-num" id="statPaidCount">—</div><div class="stat-label">Successful Payments</div></div>
+        <div class="stat"><div class="stat-num" id="statTotalPayments">—</div><div class="stat-label">Total Attempts</div></div>
+      </div>
+      <div id="paymentsContent">Loading…</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -225,7 +252,7 @@ document.getElementById('loginBtn').addEventListener('click', async function() {
     document.getElementById('authCard').style.display    = 'none';
     document.getElementById('dashboard').style.display   = 'block';
     document.getElementById('headerSub').textContent     = 'SkyUp Digital — ' + BASE_URL;
-    loadStats(); loadHistory(); loadUsers();
+    loadStats(); loadHistory(); loadUsers(); loadAccess(); loadPayments();
   } catch (e) {
     alert('Cannot connect: ' + e.message);
   } finally {
@@ -369,8 +396,108 @@ async function loadUsers() {
   } catch(e) { console.error('loadUsers:', e); }
 }
 
+// ── Access Control ────────────────────────────────────────────────────────
+async function loadAccess() {
+  try {
+    const resp = await fetch(BASE_URL + '/api/admin/users', { headers: { 'x-admin-secret': SECRET } });
+    const { users } = await resp.json();
+    const el = document.getElementById('accessContent');
+    el.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Name</th><th>Username</th><th>Status</th><th>Credits</th><th>Unlimited</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${users.map(u => `<tr id="urow-${u._id}">
+          <td>${escHtml(u.name)}</td>
+          <td>@${escHtml(u.username)}</td>
+          <td>${u.isBlocked
+              ? '<span class="badge badge-maintenance">Blocked</span>'
+              : (u.isActive ? '<span class="badge badge-announcement">Active</span>' : '<span class="badge badge-general">Inactive</span>')}</td>
+          <td>${u.unlimitedAccess ? '∞' : u.scanCredits}</td>
+          <td>${u.unlimitedAccess ? '✅' : '—'}</td>
+          <td style="white-space:nowrap">
+            <button class="btn" style="padding:6px 10px;font-size:12px;background:${u.isBlocked ? '#D1FAE5' : '#FEE2E2'};color:${u.isBlocked ? '#065F46' : '#991B1B'}"
+              onclick="toggleBlock('${u._id}', ${!u.isBlocked})">${u.isBlocked ? 'Unblock' : 'Block'}</button>
+            <button class="btn" style="padding:6px 10px;font-size:12px;background:#EDE9FE;color:#5B21B6" onclick="grantCredits('${u._id}')">+ Credits</button>
+            <button class="btn" style="padding:6px 10px;font-size:12px;background:#EDE9FE;color:#5B21B6" onclick="toggleUnlimited('${u._id}', ${!u.unlimitedAccess})">${u.unlimitedAccess ? 'Remove ∞' : 'Grant ∞'}</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  } catch(e) { console.error('loadAccess:', e); }
+}
+
+async function toggleBlock(userId, blocked) {
+  let reason = '';
+  if (blocked) reason = prompt('Reason for blocking this user (optional):') || 'Restricted by admin';
+  try {
+    const resp = await fetch(BASE_URL + '/api/admin/users/' + userId + '/block', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': SECRET },
+      body: JSON.stringify({ blocked, reason })
+    });
+    const data = await resp.json();
+    if (!data.success) { alert(data.message || 'Failed'); return; }
+    loadAccess();
+  } catch (e) { alert('Network error: ' + e.message); }
+}
+
+async function toggleUnlimited(userId, unlimited) {
+  try {
+    const resp = await fetch(BASE_URL + '/api/admin/users/' + userId + '/credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': SECRET },
+      body: JSON.stringify({ unlimitedAccess: unlimited })
+    });
+    const data = await resp.json();
+    if (!data.success) { alert(data.message || 'Failed'); return; }
+    loadAccess();
+  } catch (e) { alert('Network error: ' + e.message); }
+}
+
+async function grantCredits(userId) {
+  const val = prompt('How many scan credits to add? (use a negative number to remove)');
+  if (val === null || val.trim() === '') return;
+  const credits = parseInt(val, 10);
+  if (isNaN(credits)) { alert('Enter a valid number'); return; }
+  try {
+    const resp = await fetch(BASE_URL + '/api/admin/users/' + userId + '/credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': SECRET },
+      body: JSON.stringify({ credits })
+    });
+    const data = await resp.json();
+    if (!data.success) { alert(data.message || 'Failed'); return; }
+    loadAccess();
+  } catch (e) { alert('Network error: ' + e.message); }
+}
+
+// ── Payments ──────────────────────────────────────────────────────────────
+async function loadPayments() {
+  try {
+    const resp = await fetch(BASE_URL + '/api/admin/payments', { headers: { 'x-admin-secret': SECRET } });
+    const { payments, summary } = await resp.json();
+    document.getElementById('statRevenue').textContent       = summary.totalRevenueRupees;
+    document.getElementById('statPaidCount').textContent     = summary.successfulPayments;
+    document.getElementById('statTotalPayments').textContent = summary.totalPayments;
+
+    const el = document.getElementById('paymentsContent');
+    if (!payments.length) { el.innerHTML = '<p style="color:#9CA3AF">No payment attempts yet.</p>'; return; }
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>User</th><th>Amount</th><th>Credits</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${payments.map(p => `<tr>
+          <td>@${escHtml(p.username)}</td>
+          <td>₹${(p.amount / 100).toFixed(0)}</td>
+          <td>${p.creditsGranted}</td>
+          <td><span class="badge badge-${p.status === 'paid' ? 'announcement' : p.status === 'failed' ? 'maintenance' : 'general'}">${p.status}</span></td>
+          <td>${new Date(p.createdAt).toLocaleString()}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  } catch(e) { console.error('loadPayments:', e); }
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────
-const TAB_NAMES = ['send', 'history', 'users'];
+const TAB_NAMES = ['send', 'history', 'users', 'access', 'payments'];
 
 TAB_NAMES.forEach(name => {
   document.getElementById('tab-btn-' + name).addEventListener('click', function() {

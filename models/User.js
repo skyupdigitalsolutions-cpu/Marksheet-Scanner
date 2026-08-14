@@ -22,6 +22,22 @@ const userSchema = new mongoose.Schema({
     isActive:    { type: Boolean, default: true },
     lastLogin:   { type: Date, default: null },
 
+    // ── Admin restriction ────────────────────────────────────────────────
+    // isActive = account enabled/disabled entirely (existing field, reused)
+    // isBlocked = admin explicitly restricted this user (separate from isActive
+    //             so admin panel can show "blocked by admin" vs "inactive")
+    isBlocked:      { type: Boolean, default: false },
+    blockedReason:  { type: String, default: '' },
+    blockedAt:      { type: Date, default: null },
+
+    // ── Scan credits / paywall ───────────────────────────────────────────
+    // Every successful scan (detect-fields / scan / scan-universal) consumes
+    // 1 credit. Credits are topped up via Razorpay payments (see Payment model).
+    scanCredits:    { type: Number, default: 3 },   // 3 free trial scans on signup
+    totalScansUsed: { type: Number, default: 0 },
+    totalPaid:      { type: Number, default: 0 },   // lifetime amount paid in paise
+    unlimitedAccess:{ type: Boolean, default: false }, // admin can grant unlimited access, bypassing credits
+
     createdAt:   { type: Date, default: Date.now }
 });
 
